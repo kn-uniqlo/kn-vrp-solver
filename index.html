@@ -1,0 +1,747 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VRP Solver - Route Optimization</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css" />
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            color: white;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 20px;
+            height: calc(100vh - 200px);
+        }
+
+        .control-panel {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            overflow-y: auto;
+        }
+
+        .map-container {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+        }
+
+        #map {
+            height: 100%;
+            width: 100%;
+            border-radius: 10px;
+            border: 2px solid #e0e0e0;
+        }
+
+        .section {
+            margin-bottom: 25px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: 10px;
+            border: 1px solid #e0e0e0;
+        }
+
+        .section h3 {
+            color: #4a5568;
+            margin-bottom: 15px;
+            font-size: 1.2rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .section h3::before {
+            content: "●";
+            color: #667eea;
+            font-size: 1.5rem;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #2d3748;
+        }
+
+        input, select, button {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        input:focus, select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            transition: all 0.3s ease;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        .file-input-wrapper {
+            position: relative;
+            overflow: hidden;
+            background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
+            border-radius: 8px;
+        }
+
+        .file-input-wrapper input[type=file] {
+            position: absolute;
+            left: -9999px;
+        }
+
+        .file-input-label {
+            display: block;
+            padding: 12px;
+            cursor: pointer;
+            text-align: center;
+            color: white;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .parameters-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        .data-table {
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            margin-top: 10px;
+        }
+
+        .data-table table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+        }
+
+        .data-table th, .data-table td {
+            padding: 8px;
+            text-align: left;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .data-table th {
+            background: #f7fafc;
+            font-weight: 600;
+            position: sticky;
+            top: 0;
+        }
+
+        .results-section {
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 20px;
+            border-left: 4px solid #667eea;
+        }
+
+        .route-card {
+            background: white;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 10px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            border-left: 4px solid #48bb78;
+        }
+
+        .route-header {
+            font-weight: 600;
+            color: #2d3748;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .route-stats {
+            font-size: 12px;
+            color: #718096;
+        }
+
+        .route-points {
+            font-size: 14px;
+            color: #4a5568;
+            line-height: 1.4;
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+
+        .status-success { background-color: #48bb78; }
+        .status-warning { background-color: #ed8936; }
+        .status-error { background-color: #f56565; }
+
+        @media (max-width: 1024px) {
+            .main-content {
+                grid-template-columns: 1fr;
+                height: auto;
+            }
+            
+            .map-container {
+                height: 400px;
+            }
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .loading.show {
+            display: block;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚚 VRP Solver</h1>
+            <p>Vehicle Route Optimization & Planning System</p>
+        </div>
+
+        <div class="main-content">
+            <div class="control-panel">
+                <!-- File Import Section -->
+                <div class="section">
+                    <h3>Import Excel Data</h3>
+                    <div class="file-input-wrapper">
+                        <input type="file" id="excelFile" accept=".xlsx,.xls" />
+                        <label for="excelFile" class="file-input-label">
+                            📁 Choose Excel File
+                        </label>
+                    </div>
+                    <p style="font-size: 12px; color: #718096; margin-top: 10px;">
+                        Required columns: Locations, Demand, Weight, Start times, End times, Service times, Point, Latitude, Longitude
+                    </p>
+                </div>
+
+                <!-- Parameters Section -->
+                <div class="section">
+                    <h3>Vehicle Parameters</h3>
+                    <div class="parameters-grid">
+                        <div class="form-group">
+                            <label for="vehicleCount">จำนวนรถ</label>
+                            <input type="number" id="vehicleCount" value="3" min="1" max="10">
+                        </div>
+                        <div class="form-group">
+                            <label for="maxCapacity">Capacity (Demand)</label>
+                            <input type="number" id="maxCapacity" value="100" min="1">
+                        </div>
+                        <div class="form-group">
+                            <label for="maxWeight">Max Weight</label>
+                            <input type="number" id="maxWeight" value="1000" min="1">
+                        </div>
+                        <div class="form-group">
+                            <label for="depotLat">Depot Latitude</label>
+                            <input type="number" id="depotLat" value="13.7563" step="0.0001">
+                        </div>
+                        <div class="form-group">
+                            <label for="depotLng">Depot Longitude</label>
+                            <input type="number" id="depotLng" value="100.5018" step="0.0001">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Optimization Button -->
+                <div class="section">
+                    <button id="optimizeBtn" onclick="optimizeRoutes()">
+                        🎯 Optimize Routes
+                    </button>
+                </div>
+
+                <!-- Loading Indicator -->
+                <div class="loading" id="loadingIndicator">
+                    <div class="spinner"></div>
+                    <p>กำลังคำนวณเส้นทางที่เหมาะสม...</p>
+                </div>
+
+                <!-- Data Preview -->
+                <div class="section" id="dataPreview" style="display: none;">
+                    <h3>Data Preview</h3>
+                    <div class="data-table" id="dataTable"></div>
+                </div>
+
+                <!-- Results Section -->
+                <div class="results-section" id="resultsSection" style="display: none;">
+                    <h3>🎯 Optimization Results</h3>
+                    <div id="routeResults"></div>
+                </div>
+            </div>
+
+            <div class="map-container">
+                <div id="map"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global variables
+        let map;
+        let markers = [];
+        let routeLines = [];
+        let locationData = [];
+        let depot = { lat: 13.7563, lng: 100.5018 }; // Bangkok default
+
+        // Color palette for different routes
+        const routeColors = [
+            '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7',
+            '#DDA0DD', '#98D8C8', '#F7DC6F', '#BB8FCE', '#85C1E9'
+        ];
+
+        // Initialize map
+        function initMap() {
+            map = L.map('map').setView([depot.lat, depot.lng], 11);
+            
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors'
+            }).addTo(map);
+
+            // Add depot marker
+            addDepotMarker();
+        }
+
+        function addDepotMarker() {
+            const depotIcon = L.divIcon({
+                html: '<div style="background: #FF4444; color: white; border-radius: 50%; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 12px; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.3);">🏢</div>',
+                iconSize: [30, 30],
+                className: 'depot-marker'
+            });
+
+            L.marker([depot.lat, depot.lng], { icon: depotIcon })
+                .addTo(map)
+                .bindPopup('<b>Depot</b><br>Starting Point');
+        }
+
+        // File upload handler
+        document.getElementById('excelFile').addEventListener('change', handleFileUpload);
+
+        function handleFileUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                    const jsonData = XLSX.utils.sheet_to_json(firstSheet);
+                    
+                    processExcelData(jsonData);
+                } catch (error) {
+                    alert('Error reading Excel file: ' + error.message);
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        function processExcelData(data) {
+            locationData = data.map((row, index) => ({
+                id: index,
+                location: row.Locations || row.Location || `Point ${index + 1}`,
+                demand: parseFloat(row.Demand) || 0,
+                weight: parseFloat(row.Weight) || 0,
+                startTime: row['Start times'] || row['Start time'] || '08:00',
+                endTime: row['End times'] || row['End time'] || '17:00',
+                serviceTime: parseFloat(row['Service times'] || row['Service time']) || 30,
+                point: row.Point || `P${index + 1}`,
+                lat: parseFloat(row.Latitude) || 0,
+                lng: parseFloat(row.Longitude) || 0
+            })).filter(item => item.lat !== 0 && item.lng !== 0);
+
+            displayDataPreview();
+            addMarkersToMap();
+        }
+
+        function displayDataPreview() {
+            const dataPreview = document.getElementById('dataPreview');
+            const dataTable = document.getElementById('dataTable');
+            
+            if (locationData.length === 0) {
+                dataPreview.style.display = 'none';
+                return;
+            }
+
+            dataPreview.style.display = 'block';
+            
+            let tableHTML = `
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Location</th>
+                            <th>Demand</th>
+                            <th>Weight</th>
+                            <th>Service Time</th>
+                            <th>Coordinates</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+
+            locationData.forEach(item => {
+                tableHTML += `
+                    <tr>
+                        <td>${item.location}</td>
+                        <td>${item.demand}</td>
+                        <td>${item.weight}</td>
+                        <td>${item.serviceTime} min</td>
+                        <td>${item.lat.toFixed(4)}, ${item.lng.toFixed(4)}</td>
+                    </tr>
+                `;
+            });
+
+            tableHTML += '</tbody></table>';
+            dataTable.innerHTML = tableHTML;
+        }
+
+        function addMarkersToMap() {
+            // Clear existing markers
+            markers.forEach(marker => map.removeLayer(marker));
+            markers = [];
+
+            locationData.forEach((location, index) => {
+                const marker = L.marker([location.lat, location.lng])
+                    .addTo(map)
+                    .bindPopup(`
+                        <b>${location.location}</b><br>
+                        Demand: ${location.demand}<br>
+                        Weight: ${location.weight}<br>
+                        Service Time: ${location.serviceTime} min<br>
+                        Time Window: ${location.startTime} - ${location.endTime}
+                    `);
+                
+                markers.push(marker);
+            });
+
+            // Fit map to show all markers
+            if (locationData.length > 0) {
+                const group = new L.featureGroup(markers);
+                map.fitBounds(group.getBounds().pad(0.1));
+            }
+        }
+
+        function optimizeRoutes() {
+            if (locationData.length === 0) {
+                alert('Please import Excel data first');
+                return;
+            }
+
+            // Show loading
+            const loadingIndicator = document.getElementById('loadingIndicator');
+            const optimizeBtn = document.getElementById('optimizeBtn');
+            loadingIndicator.classList.add('show');
+            optimizeBtn.disabled = true;
+
+            // Get parameters
+            const vehicleCount = parseInt(document.getElementById('vehicleCount').value);
+            const maxCapacity = parseInt(document.getElementById('maxCapacity').value);
+            const maxWeight = parseInt(document.getElementById('maxWeight').value);
+            
+            // Update depot coordinates
+            depot.lat = parseFloat(document.getElementById('depotLat').value);
+            depot.lng = parseFloat(document.getElementById('depotLng').value);
+
+            // Simulate optimization process
+            setTimeout(() => {
+                const routes = performVRPOptimization(vehicleCount, maxCapacity, maxWeight);
+                displayResults(routes);
+                drawRoutesOnMap(routes);
+                
+                // Hide loading
+                loadingIndicator.classList.remove('show');
+                optimizeBtn.disabled = false;
+            }, 2000);
+        }
+
+        function performVRPOptimization(vehicleCount, maxCapacity, maxWeight) {
+            // Simple nearest neighbor heuristic for demonstration
+            const routes = [];
+            const unvisited = [...locationData];
+            
+            for (let v = 0; v < vehicleCount && unvisited.length > 0; v++) {
+                const route = {
+                    vehicle: v + 1,
+                    stops: [],
+                    totalDemand: 0,
+                    totalWeight: 0,
+                    totalDistance: 0,
+                    totalTime: 0
+                };
+
+                let currentLat = depot.lat;
+                let currentLng = depot.lng;
+
+                while (unvisited.length > 0) {
+                    // Find nearest unvisited location that fits capacity constraints
+                    let nearestIndex = -1;
+                    let nearestDistance = Infinity;
+
+                    for (let i = 0; i < unvisited.length; i++) {
+                        const location = unvisited[i];
+                        
+                        // Check capacity constraints
+                        if (route.totalDemand + location.demand > maxCapacity ||
+                            route.totalWeight + location.weight > maxWeight) {
+                            continue;
+                        }
+
+                        const distance = calculateDistance(currentLat, currentLng, location.lat, location.lng);
+                        if (distance < nearestDistance) {
+                            nearestDistance = distance;
+                            nearestIndex = i;
+                        }
+                    }
+
+                    if (nearestIndex === -1) break; // No more locations can be added
+
+                    const selectedLocation = unvisited.splice(nearestIndex, 1)[0];
+                    route.stops.push(selectedLocation);
+                    route.totalDemand += selectedLocation.demand;
+                    route.totalWeight += selectedLocation.weight;
+                    route.totalDistance += nearestDistance;
+                    route.totalTime += selectedLocation.serviceTime;
+
+                    currentLat = selectedLocation.lat;
+                    currentLng = selectedLocation.lng;
+                }
+
+                // Add return to depot distance
+                route.totalDistance += calculateDistance(currentLat, currentLng, depot.lat, depot.lng);
+                
+                if (route.stops.length > 0) {
+                    routes.push(route);
+                }
+            }
+
+            return routes;
+        }
+
+        function calculateDistance(lat1, lng1, lat2, lng2) {
+            const R = 6371; // Earth's radius in km
+            const dLat = (lat2 - lat1) * Math.PI / 180;
+            const dLng = (lng2 - lng1) * Math.PI / 180;
+            const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                    Math.sin(dLng/2) * Math.sin(dLng/2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+            return R * c;
+        }
+
+        function displayResults(routes) {
+            const resultsSection = document.getElementById('resultsSection');
+            const routeResults = document.getElementById('routeResults');
+            
+            resultsSection.style.display = 'block';
+            
+            let resultsHTML = '';
+            
+            routes.forEach((route, index) => {
+                const utilizationDemand = (route.totalDemand / parseInt(document.getElementById('maxCapacity').value) * 100).toFixed(1);
+                const utilizationWeight = (route.totalWeight / parseInt(document.getElementById('maxWeight').value) * 100).toFixed(1);
+                
+                resultsHTML += `
+                    <div class="route-card" style="border-left-color: ${routeColors[index % routeColors.length]}">
+                        <div class="route-header">
+                            <span>🚛 Route ${route.vehicle}</span>
+                            <span class="route-stats">
+                                ${route.stops.length} stops • ${route.totalDistance.toFixed(1)} km
+                            </span>
+                        </div>
+                        <div class="route-points">
+                            <strong>Stops:</strong> Depot → ${route.stops.map(s => s.location).join(' → ')} → Depot
+                        </div>
+                        <div style="margin-top: 10px; font-size: 12px; color: #718096;">
+                            <span class="status-indicator ${utilizationDemand > 90 ? 'status-warning' : 'status-success'}"></span>
+                            Demand: ${route.totalDemand} (${utilizationDemand}%)
+                            <span class="status-indicator ${utilizationWeight > 90 ? 'status-warning' : 'status-success'}"></span>
+                            Weight: ${route.totalWeight} (${utilizationWeight}%)
+                            <span class="status-indicator status-success"></span>
+                            Time: ${route.totalTime} min
+                        </div>
+                    </div>
+                `;
+            });
+
+            // Add summary
+            const totalDistance = routes.reduce((sum, route) => sum + route.totalDistance, 0);
+            const totalStops = routes.reduce((sum, route) => sum + route.stops.length, 0);
+            
+            resultsHTML += `
+                <div style="background: #f7fafc; padding: 15px; border-radius: 8px; margin-top: 15px;">
+                    <h4 style="color: #2d3748; margin-bottom: 10px;">📊 Summary</h4>
+                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; font-size: 14px;">
+                        <div><strong>Total Vehicles:</strong> ${routes.length}</div>
+                        <div><strong>Total Distance:</strong> ${totalDistance.toFixed(1)} km</div>
+                        <div><strong>Total Stops:</strong> ${totalStops}</div>
+                    </div>
+                </div>
+            `;
+            
+            routeResults.innerHTML = resultsHTML;
+        }
+
+        function drawRoutesOnMap() {
+            // Clear existing routes
+            routeLines.forEach(line => map.removeLayer(line));
+            routeLines = [];
+
+            // Update depot marker position
+            map.eachLayer(layer => {
+                if (layer.options && layer.options.icon && layer.options.icon.options && layer.options.icon.options.className === 'depot-marker') {
+                    map.removeLayer(layer);
+                }
+            });
+            addDepotMarker();
+
+            // Get current routes from results
+            const vehicleCount = parseInt(document.getElementById('vehicleCount').value);
+            const maxCapacity = parseInt(document.getElementById('maxCapacity').value);
+            const maxWeight = parseInt(document.getElementById('maxWeight').value);
+            
+            const routes = performVRPOptimization(vehicleCount, maxCapacity, maxWeight);
+
+            routes.forEach((route, routeIndex) => {
+                const color = routeColors[routeIndex % routeColors.length];
+                const points = [];
+                
+                // Add depot as starting point
+                points.push([depot.lat, depot.lng]);
+                
+                // Add all stops
+                route.stops.forEach(stop => {
+                    points.push([stop.lat, stop.lng]);
+                });
+                
+                // Return to depot
+                points.push([depot.lat, depot.lng]);
+                
+                // Draw route line
+                const routeLine = L.polyline(points, {
+                    color: color,
+                    weight: 4,
+                    opacity: 0.8,
+                    dashArray: routeIndex === 0 ? null : '10, 5'
+                }).addTo(map);
+                
+                routeLines.push(routeLine);
+                
+                // Update marker colors for this route
+                route.stops.forEach((stop, stopIndex) => {
+                    const marker = markers.find(m => 
+                        Math.abs(m.getLatLng().lat - stop.lat) < 0.0001 && 
+                        Math.abs(m.getLatLng().lng - stop.lng) < 0.0001
+                    );
+                    
+                    if (marker) {
+                        const icon = L.divIcon({
+                            html: `<div style="background: ${color}; color: white; border-radius: 50%; width: 25px; height: 25px; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 12px; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.3);">${stopIndex + 1}</div>`,
+                            iconSize: [25, 25],
+                            className: 'route-marker'
+                        });
+                        marker.setIcon(icon);
+                    }
+                });
+            });
+        }
+
+        // Initialize the application
+        document.addEventListener('DOMContentLoaded', function() {
+            initMap();
+        });
+    </script>
+</body>
+</html>
