@@ -3,11 +3,24 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>VRP Solver - Route Optimization</title>
+    <title>LOTUS VRP SOLVER - AI Route Optimization</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
+        :root {
+            --primary: #6C5CE7;
+            --secondary: #00B894;
+            --accent: #FD79A8;
+            --dark: #2D3436;
+            --light: #F5F6FA;
+            --success: #00B894;
+            --warning: #FDCB6E;
+            --danger: #E17055;
+            --info: #0984E3;
+        }
+
         * {
             margin: 0;
             padding: 0;
@@ -15,14 +28,15 @@
         }
 
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #e4e8f0 100%);
             min-height: 100vh;
-            color: #333;
+            color: var(--dark);
+            line-height: 1.6;
         }
 
         .container {
-            max-width: 1400px;
+            max-width: 1600px;
             margin: 0 auto;
             padding: 20px;
         }
@@ -30,72 +44,109 @@
         .header {
             text-align: center;
             margin-bottom: 30px;
+            background: linear-gradient(135deg, var(--primary) 0%, #8C7AE6 100%);
+            padding: 25px;
+            border-radius: 16px;
             color: white;
+            box-shadow: 0 10px 30px rgba(108, 92, 231, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .header::before {
+            content: "";
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 70%);
+            transform: rotate(30deg);
         }
 
         .header h1 {
-            font-size: 2.5rem;
+            font-size: 2.8rem;
             margin-bottom: 10px;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+            font-weight: 700;
+            position: relative;
+            text-shadow: 0 2px 10px rgba(0,0,0,0.1);
         }
 
         .header p {
-            font-size: 1.1rem;
+            font-size: 1.2rem;
             opacity: 0.9;
+            font-weight: 300;
+            position: relative;
         }
 
         .main-content {
             display: grid;
             grid-template-columns: 1fr 2fr;
-            gap: 20px;
+            gap: 25px;
             height: calc(100vh - 200px);
         }
 
         .control-panel {
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px);
-            border-radius: 15px;
+            background: rgba(255, 255, 255, 0.98);
+            border-radius: 16px;
             padding: 25px;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.05);
             overflow-y: auto;
+            border: 1px solid rgba(255,255,255,0.3);
+            backdrop-filter: blur(12px);
         }
 
         .map-container {
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px);
-            border-radius: 15px;
+            background: rgba(255, 255, 255, 0.98);
+            border-radius: 16px;
             padding: 20px;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.05);
+            border: 1px solid rgba(255,255,255,0.3);
+            backdrop-filter: blur(12px);
+            display: flex;
+            flex-direction: column;
         }
 
         #map {
             height: 100%;
             width: 100%;
-            border-radius: 10px;
-            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            border: 1px solid rgba(0,0,0,0.1);
+            box-shadow: inset 0 1px 3px rgba(0,0,0,0.05);
         }
 
         .section {
             margin-bottom: 25px;
             padding: 20px;
-            background: rgba(255, 255, 255, 0.8);
-            border-radius: 10px;
-            border: 1px solid #e0e0e0;
+            background: white;
+            border-radius: 12px;
+            border: 1px solid rgba(0,0,0,0.05);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.02);
+            transition: all 0.3s ease;
+        }
+
+        .section:hover {
+            box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+            transform: translateY(-2px);
         }
 
         .section h3 {
-            color: #4a5568;
+            color: var(--dark);
             margin-bottom: 15px;
             font-size: 1.2rem;
+            font-weight: 600;
             display: flex;
             align-items: center;
             gap: 10px;
         }
 
         .section h3::before {
-            content: "●";
-            color: #667eea;
-            font-size: 1.5rem;
+            content: "";
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            background: var(--primary);
+            border-radius: 50%;
         }
 
         .form-group {
@@ -104,40 +155,47 @@
 
         label {
             display: block;
-            margin-bottom: 5px;
-            font-weight: 600;
-            color: #2d3748;
+            margin-bottom: 4px;
+            font-weight: 500;
+            color: var(--dark);
+            font-size: 0.9rem;
         }
 
         input, select, button {
             width: 100%;
-            padding: 12px;
-            border: 2px solid #e2e8f0;
+            padding: 12px 15px;
+            border: 1px solid rgba(0,0,0,0.1);
             border-radius: 8px;
             font-size: 14px;
             transition: all 0.3s ease;
+            background: rgba(0,0,0,0.02);
         }
 
         input:focus, select:focus {
             outline: none;
-            border-color: #667eea;
-            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(108, 92, 231, 0.1);
+            background: white;
         }
 
         button {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, var(--primary) 0%, #8C7AE6 100%);
             color: white;
             border: none;
             cursor: pointer;
             font-weight: 600;
-            text-transform: uppercase;
             letter-spacing: 0.5px;
             transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(108, 92, 231, 0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
         }
 
         button:hover {
             transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+            box-shadow: 0 8px 20px rgba(108, 92, 231, 0.4);
         }
 
         button:active {
@@ -147,8 +205,15 @@
         .file-input-wrapper {
             position: relative;
             overflow: hidden;
-            background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
+            background: linear-gradient(135deg, var(--secondary) 0%, #00D4A4 100%);
             border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0, 184, 148, 0.3);
+            transition: all 0.3s ease;
+        }
+
+        .file-input-wrapper:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(0, 184, 148, 0.4);
         }
 
         .file-input-wrapper input[type=file] {
@@ -158,12 +223,11 @@
 
         .file-input-label {
             display: block;
-            padding: 12px;
+            padding: 9px;
             cursor: pointer;
             text-align: center;
             color: white;
-            font-weight: 600;
-            text-transform: uppercase;
+            font-weight: 800;
             letter-spacing: 0.5px;
         }
 
@@ -174,67 +238,108 @@
         }
 
         .data-table {
-            max-height: 200px;
-            overflow-y: auto;
-            border: 1px solid #e2e8f0;
+            max-height: 300px; /* กำหนดความสูงสูงสุด */
+            overflow-y: auto;  /* ให้เลื่อนขึ้น-ลงได้ */
+            overflow-x: auto;  /* ให้เลื่อนซ้าย-ขวาได้ถ้าจำเป็น */
+            border: 1px solid rgba(0,0,0,0.05);
             border-radius: 8px;
             margin-top: 10px;
+            background: white;
+            position: relative; /* เพิ่มเพื่อให้หัวตารางติดแน่นภายในพื้นที่นี้ */
         }
 
         .data-table table {
             width: 100%;
             border-collapse: collapse;
-            font-size: 12px;
-        }
-
-        .data-table th, .data-table td {
-            padding: 8px;
-            text-align: left;
-            border-bottom: 1px solid #e2e8f0;
+            font-size: 13px;
         }
 
         .data-table th {
-            background: #f7fafc;
+            background: rgba(0,0,0,0.02);
             font-weight: 600;
-            position: sticky;
-            top: 0;
+            position: sticky; /* ทำให้หัวตารางติดอยู่ด้านบน */
+            top: 0;          /* ติดที่ตำแหน่งบนสุดของ .data-table */
+            z-index: 1;      /* ให้หัวตารางอยู่เหนือข้อมูลเมื่อเลื่อน */
+            color: var(--dark);
+            box-shadow: 0 2px 2px -1px rgba(0,0,0,0.1); /* เพิ่มเงาเพื่อแยกหัวตาราง */
+        }
+
+        .data-table td {
+            padding: 10px;
+            text-align: left;
+            border-bottom: 1px solid rgba(0,0,0,0.05);
+            background: white; /* ป้องกันข้อมูลทับซ้อนกับหัวตาราง */
+        }
+
+        .data-table tr:hover td {
+            background: rgba(108, 92, 231, 0.05);
         }
 
         .results-section {
-            background: rgba(255, 255, 255, 0.9);
-            border-radius: 10px;
-            padding: 15px;
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
             margin-top: 20px;
-            border-left: 4px solid #667eea;
+            border-left: 4px solid var(--primary);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.02);
         }
 
         .route-card {
             background: white;
-            border-radius: 8px;
-            padding: 15px;
-            margin-bottom: 10px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-            border-left: 4px solid #48bb78;
+            border-radius: 10px;
+            padding: 18px;
+            margin-bottom: 15px;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.05);
+            border-left: 4px solid var(--success);
+            transition: all 0.3s ease;
+        }
+
+        .route-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
         }
 
         .route-header {
             font-weight: 600;
-            color: #2d3748;
-            margin-bottom: 10px;
+            color: var(--dark);
+            margin-bottom: 12px;
             display: flex;
             justify-content: space-between;
             align-items: center;
+            font-size: 1.1rem;
         }
 
         .route-stats {
-            font-size: 12px;
-            color: #718096;
+            font-size: 13px;
+            color: rgba(0,0,0,0.6);
+            background: rgba(0,0,0,0.03);
+            padding: 4px 8px;
+            border-radius: 20px;
         }
 
         .route-points {
             font-size: 14px;
-            color: #4a5568;
-            line-height: 1.4;
+            color: rgba(0,0,0,0.8);
+            line-height: 1.6;
+            margin-bottom: 10px;
+        }
+
+        .time-windows {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 8px;
+        }
+
+        .time-window {
+            background: rgba(0,0,0,0.03);
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            color: rgba(0,0,0,0.7);
+            display: flex;
+            align-items: center;
+            gap: 4px;
         }
 
         .status-indicator {
@@ -242,28 +347,47 @@
             width: 10px;
             height: 10px;
             border-radius: 50%;
-            margin-right: 8px;
+            margin-right: 6px;
         }
 
-        .status-success { background-color: #48bb78; }
-        .status-warning { background-color: #ed8936; }
-        .status-error { background-color: #f56565; }
+        .status-success { background-color: var(--success); }
+        .status-warning { background-color: var(--warning); }
+        .status-error { background-color: var(--danger); }
+        .status-info { background-color: var(--info); }
 
-        @media (max-width: 1024px) {
-            .main-content {
-                grid-template-columns: 1fr;
-                height: auto;
-            }
-            
-            .map-container {
-                height: 400px;
-            }
+        .progress-container {
+            margin-top: 10px;
+        }
+
+        .progress-bar {
+            height: 8px;
+            background: rgba(0,0,0,0.05);
+            border-radius: 4px;
+            overflow: hidden;
+            margin-bottom: 4px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary), #8C7AE6);
+            border-radius: 4px;
+            transition: width 0.3s ease;
+        }
+
+        .progress-labels {
+            display: flex;
+            justify-content: space-between;
+            font-size: 11px;
+            color: rgba(0,0,0,0.6);
         }
 
         .loading {
             display: none;
             text-align: center;
-            padding: 20px;
+            padding: 30px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.05);
         }
 
         .loading.show {
@@ -271,67 +395,253 @@
         }
 
         .spinner {
-            border: 4px solid #f3f3f3;
-            border-top: 4px solid #667eea;
+            border: 4px solid rgba(108, 92, 231, 0.1);
+            border-top: 4px solid var(--primary);
             border-radius: 50%;
-            width: 40px;
-            height: 40px;
+            width: 50px;
+            height: 50px;
             animation: spin 1s linear infinite;
-            margin: 0 auto 10px;
+            margin: 0 auto 15px;
         }
 
         @keyframes spin {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
+
+        .map-controls {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 15px;
+            align-items: center;
+        }
+
+        .map-title {
+            font-weight: 600;
+            color: var(--dark);
+            font-size: 1.1rem;
+        }
+
+        .map-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .map-btn {
+            background: rgb(137, 102, 252);
+            border: 1px solid rgba(0,0,0,0.1);
+            border-radius: 8px;
+            padding: 8px 12px;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .map-btn:hover {
+            background: rgba(0,0,0,0.02);
+            border-color: rgba(0,0,0,0.2);
+        }
+
+        .time-slider {
+            margin-top: 15px;
+        }
+
+        .time-slider input {
+            width: 100%;
+            margin-top: 8px;
+        }
+
+        .tooltip {
+            position: relative;
+            display: inline-block;
+            cursor: pointer;
+        }
+
+        .tooltip .tooltip-text {
+            visibility: hidden;
+            width: 200px;
+            background-color: var(--dark);
+            color: white;
+            text-align: center;
+            border-radius: 6px;
+            padding: 10px;
+            position: absolute;
+            z-index: 1;
+            bottom: 125%;
+            left: 50%;
+            transform: translateX(-50%);
+            opacity: 0;
+            transition: opacity 0.3s;
+            font-size: 13px;
+            font-weight: normal;
+        }
+
+        .tooltip:hover .tooltip-text {
+            visibility: visible;
+            opacity: 1;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            background: rgba(0,0,0,0.05);
+            color: rgba(0,0,0,0.7);
+        }
+
+        .badge-primary {
+            background: rgba(108, 92, 231, 0.1);
+            color: var(--primary);
+        }
+
+        .badge-success {
+            background: rgba(0, 184, 148, 0.1);
+            color: var(--success);
+        }
+
+        .badge-warning {
+            background: rgba(253, 203, 110, 0.1);
+            color: #d68910;
+        }
+
+        .badge-danger {
+            background: rgba(225, 112, 85, 0.1);
+            color: var(--danger);
+        }
+
+        @media (max-width: 1200px) {
+            .main-content {
+                grid-template-columns: 1fr;
+                height: auto;
+            }
+            
+            .map-container {
+                height: 500px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .parameters-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .header p {
+                font-size: 1rem;
+            }
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
-            <h1>🚚 VRP Solver</h1>
-            <p>Vehicle Route Optimization & Planning System</p>
+            <h1>LOTUS'S ROUTE PLANNER</h1>
+            <p>Advanced Vehicle Routing with Time Windows • 2025 Edition</p>
         </div>
 
         <div class="main-content">
             <div class="control-panel">
                 <!-- File Import Section -->
                 <div class="section">
-                    <h3>Import Excel Data</h3>
+                    <h3>📂 Data Import</h3>
                     <div class="file-input-wrapper">
                         <input type="file" id="excelFile" accept=".xlsx,.xls" />
                         <label for="excelFile" class="file-input-label">
-                            📁 Choose Excel File
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 5px;">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                <polyline points="17 8 12 3 7 8"></polyline>
+                                <line x1="12" y1="3" x2="12" y2="15"></line>
+                            </svg>
+                            Upload Excel Data
                         </label>
                     </div>
-                    <p style="font-size: 12px; color: #718096; margin-top: 10px;">
-                        Required columns: Locations, Demand, Weight, Start times, End times, Service times, Point, Latitude, Longitude
+                    <p style="font-size: 13px; color: rgba(0,0,0,0.6); margin-top: 10px; line-height: 1.5;">
+                        Required columns: <span class="badge">Location</span> <span class="badge">Demand</span> 
+                        <span class="badge">Weight</span> <span class="badge">Start Time</span> 
+                        <span class="badge">End Time</span> <span class="badge">Service Time</span>
+                        <span class="badge">Latitude</span> <span class="badge">Longitude</span>
                     </p>
                 </div>
 
                 <!-- Parameters Section -->
                 <div class="section">
-                    <h3>Vehicle Parameters</h3>
+                    <h3>⚙️ Optimization Parameters</h3>
                     <div class="parameters-grid">
                         <div class="form-group">
-                            <label for="vehicleCount">จำนวนรถ</label>
-                            <input type="number" id="vehicleCount" value="3" min="1" max="10">
+                            <label for="vehicleCount">
+                                Vehicle Count 
+                                <span class="tooltip">ℹ️
+                                    <span class="tooltip-text">Number of vehicles available for routing</span>
+                                </span>
+                            </label>
+                            <input type="number" id="vehicleCount" value="5" min="1" max="20">
                         </div>
                         <div class="form-group">
-                            <label for="maxCapacity">Capacity (Demand)</label>
-                            <input type="number" id="maxCapacity" value="100" min="1">
+                            <label for="maxCapacity">
+                                Max Demand Capacity 
+                                <span class="tooltip">ℹ️
+                                    <span class="tooltip-text">Maximum demand capacity per vehicle</span>
+                                </span>
+                            </label>
+                            <input type="number" id="maxCapacity" value="425" min="1">
                         </div>
                         <div class="form-group">
-                            <label for="maxWeight">Max Weight</label>
-                            <input type="number" id="maxWeight" value="1000" min="1">
+                            <label for="maxWeight">
+                                Max Weight Capacity 
+                                <span class="tooltip">ℹ️
+                                    <span class="tooltip-text">Maximum weight capacity per vehicle</span>
+                                </span>
+                            </label>
+                            <input type="number" id="maxWeight" value="3400" min="1">
                         </div>
                         <div class="form-group">
-                            <label for="depotLat">Depot Latitude</label>
-                            <input type="number" id="depotLat" value="13.7563" step="0.0001">
+                            <label for="depotLat">
+                                Depot Latitude 
+                                <span class="tooltip">ℹ️
+                                    <span class="tooltip-text">Starting point latitude coordinate</span>
+                                </span>
+                            </label>
+                            <input type="number" id="depotLat" value="14.1871748" step="0.0001">
                         </div>
                         <div class="form-group">
-                            <label for="depotLng">Depot Longitude</label>
-                            <input type="number" id="depotLng" value="100.5018" step="0.0001">
+                            <label for="depotLng">
+                                Depot Longitude 
+                                <span class="tooltip">ℹ️
+                                    <span class="tooltip-text">Starting point longitude coordinate</span>
+                                </span>
+                            </label>
+                            <input type="number" id="depotLng" value="100.6226502" step="0.0001">
+                        </div>
+                        <div class="form-group">
+                            <label for="timeHorizon">
+                                Time Horizon (hrs) 
+                                <span class="tooltip">ℹ️
+                                    <span class="tooltip-text">Total working hours per vehicle</span>
+                                </span>
+                            </label>
+                            <input type="number" id="timeHorizon" value="8" min="1" max="24">
+                        </div>
+                        <div class="form-group">
+                            <label for="timeWindowPenalty">
+                                Time Window Strictness 
+                                <span class="tooltip">ℹ️
+                                    <span class="tooltip-text">How strictly to enforce time windows (1-10)</span>
+                                </span>
+                            </label>
+                            <select id="timeWindowPenalty">
+                                <option value="1">Flexible</option>
+                                <option value="3" selected>Balanced</option>
+                                <option value="5">Strict</option>
+                                <option value="10">Very Strict</option>
+                            </select>
                         </div>
                     </div>
                 </div>
@@ -339,31 +649,69 @@
                 <!-- Optimization Button -->
                 <div class="section">
                     <button id="optimizeBtn" onclick="optimizeRoutes()">
-                        🎯 Optimize Routes
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 5px;">
+                            <path d="M3 3v7h7"></path>
+                            <path d="M21 21v-7h-7"></path>
+                            <path d="M21 3l-7 7"></path>
+                            <path d="M3 21l7-7"></path>
+                        </svg>
+                        OPTIMIZE ROUTES
                     </button>
                 </div>
 
                 <!-- Loading Indicator -->
                 <div class="loading" id="loadingIndicator">
                     <div class="spinner"></div>
-                    <p>กำลังคำนวณเส้นทางที่เหมาะสม...</p>
+                    <p>Running AI-powered optimization...</p>
+                    <div style="margin-top: 20px; font-size: 13px; color: rgba(0,0,0,0.6);">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                            <span>Processing time windows...</span>
+                            <span id="progressStatus">25%</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="progressFill" style="width: 25%"></div>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Data Preview -->
                 <div class="section" id="dataPreview" style="display: none;">
-                    <h3>Data Preview</h3>
+                    <h3>📊 Data Preview</h3>
                     <div class="data-table" id="dataTable"></div>
                 </div>
 
                 <!-- Results Section -->
                 <div class="results-section" id="resultsSection" style="display: none;">
-                    <h3>🎯 Optimization Results</h3>
+                    <h3>📈 Optimization Results</h3>
                     <div id="routeResults"></div>
                 </div>
             </div>
 
             <div class="map-container">
+                <div class="map-controls">
+                    <div class="map-title">Route Visualization</div>
+                    <div class="map-actions">
+                        <button class="map-btn" id="animateBtn">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                            </svg>
+                            Animate
+                        </button>
+                        <button class="map-btn" id="exportBtn">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                <polyline points="7 10 12 15 17 10"></polyline>
+                                <line x1="12" y1="15" x2="12" y2="3"></line>
+                            </svg>
+                            Export
+                        </button>
+                    </div>
+                </div>
                 <div id="map"></div>
+                <div class="time-slider" id="timeSlider" style="display: none;">
+                    <label>Time Simulation: <span id="timeLabel">08:00</span></label>
+                    <input type="range" min="0" max="480" value="0" step="15" id="timeRange">
+                </div>
             </div>
         </div>
     </div>
@@ -374,12 +722,25 @@
         let markers = [];
         let routeLines = [];
         let locationData = [];
-        let depot = { lat: 13.7563, lng: 100.5018 }; // Bangkok default
+        let depot = { lat: 14.1871748, lng: 100.6226502 };
+        let currentAnimation = null;
+        let currentTime = 0;
+        let vehicleIcons = [];
 
         // Color palette for different routes
         const routeColors = [
-            '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7',
-            '#DDA0DD', '#98D8C8', '#F7DC6F', '#BB8FCE', '#85C1E9'
+            '#6C5CE7', '#00B894', '#FD79A8', '#FDCB6E', '#0984E3',
+            '#E17055', '#00CEC9', '#A29BFE', '#FF7675', '#74B9FF',
+            '#55EFC4', '#FFEAA7', '#81ECEC', '#FAB1A0', '#FF9FF3',
+            '#D6A2E8', '#F8EFBA', '#CAD3C8', '#F97F51', '#1B9CFC',
+            '#25CCF7', '#FD7272', '#9AECDB', '#D6A2E8', '#6D214F',
+            '#182C61', '#3B3B98', '#FC427B', '#BDC581', '#82589F'
+        ];
+
+        // Vehicle icons for map
+        const vehicleIconsList = [
+            '🚚', '🚛', '🚐', '🚗', '🚙', '🚕', '🚌', '🚎', '🏎️', '🚓',
+            '🚑', '🚒', '🚜', '🛵', '🚲', '🛴', '🚍', '🚔', '🚘', '🚖'
         ];
 
         // Initialize map
@@ -392,22 +753,34 @@
 
             // Add depot marker
             addDepotMarker();
+            
+            // Initialize vehicle icons
+            for (let i = 0; i < 20; i++) {
+                vehicleIcons.push(L.divIcon({
+                    html: `<div style="background: ${routeColors[i % routeColors.length]}; color: white; border-radius: 50%; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; font-size: 16px; border: 2px solid white; box-shadow: 0 2px 6px rgba(0,0,0,0.3); transform: translate(-50%, -50%);">${vehicleIconsList[i % vehicleIconsList.length]}</div>`,
+                    iconSize: [10, 10],
+                    className: 'vehicle-marker'
+                }));
+            }
         }
 
         function addDepotMarker() {
             const depotIcon = L.divIcon({
-                html: '<div style="background: #FF4444; color: white; border-radius: 50%; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 12px; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.3);">🏢</div>',
-                iconSize: [30, 30],
+                html: '<div style="background: #E17055; color: white; border-radius: 50%; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 16px; border: 2px solid white; box-shadow: 0 3px 8px rgba(0,0,0,0.3); transform: translate(-50%, -50%);">🏭</div>',
+                iconSize: [10, 10],
                 className: 'depot-marker'
             });
 
             L.marker([depot.lat, depot.lng], { icon: depotIcon })
                 .addTo(map)
-                .bindPopup('<b>Depot</b><br>Starting Point');
+                .bindPopup('<b>Depot</b><br>Starting and Ending Point');
         }
 
         // File upload handler
         document.getElementById('excelFile').addEventListener('change', handleFileUpload);
+        document.getElementById('animateBtn').addEventListener('click', toggleAnimation);
+        document.getElementById('exportBtn').addEventListener('click', exportRoutes);
+        document.getElementById('timeRange').addEventListener('input', updateTimeSimulation);
 
         function handleFileUpload(event) {
             const file = event.target.files[0];
@@ -430,21 +803,149 @@
         }
 
         function processExcelData(data) {
-            locationData = data.map((row, index) => ({
-                id: index,
-                location: row.Locations || row.Location || `Point ${index + 1}`,
-                demand: parseFloat(row.Demand) || 0,
-                weight: parseFloat(row.Weight) || 0,
-                startTime: row['Start times'] || row['Start time'] || '08:00',
-                endTime: row['End times'] || row['End time'] || '17:00',
-                serviceTime: parseFloat(row['Service times'] || row['Service time']) || 30,
-                point: row.Point || `P${index + 1}`,
-                lat: parseFloat(row.Latitude) || 0,
-                lng: parseFloat(row.Longitude) || 0
-            })).filter(item => item.lat !== 0 && item.lng !== 0);
+            // Clear previous data
+            locationData = [];
+            
+            // Process each row in the Excel data
+            data.forEach((row, index) => {
+                const location = findColumn(row, ['Locations', 'Location', 'จุด', 'ที่ตั้ง']) || `Location ${index + 1}`;
+                const demand = parseFloat(findColumn(row, ['Demand', 'ความต้องการ'])) || 0;
+                const weight = parseFloat(findColumn(row, ['Weight', 'น้ำหนัก'])) || 0;
+                
+                // Improved time parsing with fallbacks
+                let startTime = findColumn(row, ['Start times', 'Start time', 'เวลาเริ่มต้น']);
+                let endTime = findColumn(row, ['End times', 'End time', 'เวลาสิ้นสุด']);
+                
+                // Handle different time formats
+                const parseTime = (time) => {
+                    if (time === undefined || time === null) return '08:00'; // Default fallback
+                    
+                    // If it's already in HH:MM format
+                    if (typeof time === 'string' && time.match(/^\d{1,2}:\d{2}$/)) {
+                        return time;
+                    }
+                    
+                    // If it's an Excel time value (number)
+                    if (typeof time === 'number') {
+                        // Excel dates are represented as days since 1900 (with 1900 incorrectly treated as leap year)
+                        const excelEpoch = new Date(1899, 11, 30);
+                        const excelDate = new Date(excelEpoch.getTime() + Math.round(time * 86400 * 1000));
+                        
+                        // Handle 1900 leap year bug in Excel
+                        if (time >= 60) time -= 1;
+                        
+                        const hours = excelDate.getHours().toString().padStart(2, '0');
+                        const minutes = excelDate.getMinutes().toString().padStart(2, '0');
+                        return `${hours}:${minutes}`;
+                    }
+                    
+                    // If it's in other string formats
+                    if (typeof time === 'string') {
+                        // Handle formats like "8:00 AM" or "17:30:00"
+                        const cleaned = time.replace(/\s+/g, '').toUpperCase();
+                        const match = cleaned.match(/(\d{1,2}):(\d{2})(?::\d{2})?(AM|PM)?/);
+                        if (match) {
+                            let hours = parseInt(match[1]);
+                            const minutes = match[2];
+                            const period = match[3];
+                            
+                            if (period === 'PM' && hours < 12) hours += 12;
+                            if (period === 'AM' && hours === 12) hours = 0;
+                            
+                            return `${hours.toString().padStart(2, '0')}:${minutes}`;
+                        }
+                        
+                        // Handle decimal hours (e.g., 8.5 for 8:30)
+                        const decimalMatch = cleaned.match(/^(\d+\.?\d*)$/);
+                        if (decimalMatch) {
+                            const decimalHours = parseFloat(decimalMatch[1]);
+                            const hours = Math.floor(decimalHours);
+                            const minutes = Math.round((decimalHours - hours) * 60);
+                            return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+                        }
+                    }
+                    
+                    return '08:00'; // Final fallback
+                };
+                
+                startTime = parseTime(startTime) || '08:00';
+                endTime = parseTime(endTime) || '17:00';
+                
+                const serviceTime = parseFloat(findColumn(row, ['Service times', 'Service time', 'เวลาบริการ'])) || 30;
+                const point = findColumn(row, ['Point', 'จุด']) || `P${index + 1}`;
+                const lat = parseFloat(findColumn(row, ['Latitude', 'ละติจูด', 'lat', '(y)'])) || 0;
+                const lng = parseFloat(findColumn(row, ['Longitude', 'ลองจิจูด', 'lng', 'lon', '(x)'])) || 0;
 
+                // Convert time strings to minutes since midnight
+                const startMinutes = timeToMinutes(startTime);
+                const endMinutes = timeToMinutes(endTime);
+
+                // Only add if we have valid coordinates
+                if (lat !== 0 && lng !== 0) {
+                    locationData.push({
+                        id: index,
+                        location: location,
+                        demand: demand,
+                        weight: weight,
+                        startTime: startTime,
+                        endTime: endTime,
+                        startMinutes: startMinutes,
+                        endMinutes: endMinutes,
+                        serviceTime: serviceTime,
+                        point: point,
+                        lat: lat,
+                        lng: lng,
+                        visited: false
+                    });
+                }
+            });
+
+            // Update UI with the imported data
             displayDataPreview();
             addMarkersToMap();
+            
+            // Show success message
+            if (locationData.length > 0) {
+                showNotification(`Successfully imported ${locationData.length} locations`, 'success');
+            } else {
+                showNotification('No valid location data found. Please check your data format.', 'error');
+            }
+        }
+
+        // Helper function to find column data (case insensitive)
+        function findColumn(row, possibleNames) {
+            for (const name of possibleNames) {
+                // Check for exact match first
+                if (row[name] !== undefined) {
+                    return row[name];
+                }
+                
+                // Check for case-insensitive match
+                const lowerName = name.toLowerCase();
+                for (const key in row) {
+                    if (key.toLowerCase() === lowerName) {
+                        return row[key];
+                    }
+                }
+            }
+            return null;
+        }
+
+        // Convert time string (HH:MM) to minutes since midnight
+        function timeToMinutes(timeStr) {
+            if (!timeStr) return 0;
+            const [hours, minutes] = timeStr.split(':').map(Number);
+            return hours * 60 + minutes;
+        }
+
+        // Convert minutes since midnight to time string (HH:MM)
+        function minutesToTime(totalMinutes) {
+            // คำนวณชั่วโมงและนาที
+            const hours = Math.floor(totalMinutes / 60);
+            const minutes = Math.floor(totalMinutes % 60);
+            
+            // แปลงเป็นรูปแบบ HH:MM โดยตัดทศนิยมทิ้ง
+            return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
         }
 
         function displayDataPreview() {
@@ -462,24 +963,27 @@
                 <table>
                     <thead>
                         <tr>
+                            <th>No.</th>
                             <th>Location</th>
+                            <th>Time Window</th>
                             <th>Demand</th>
-                            <th>Weight</th>
                             <th>Service Time</th>
-                            <th>Coordinates</th>
                         </tr>
                     </thead>
                     <tbody>
             `;
 
-            locationData.forEach(item => {
+            locationData.forEach((item, index) => {
                 tableHTML += `
                     <tr>
+                        <td>${index + 1}</td>
                         <td>${item.location}</td>
+                        <td>
+                            ${item.startTime} - ${item.endTime}<br>
+                            <small>(${item.serviceTime} min service)</small>
+                        </td>
                         <td>${item.demand}</td>
                         <td>${item.weight}</td>
-                        <td>${item.serviceTime} min</td>
-                        <td>${item.lat.toFixed(4)}, ${item.lng.toFixed(4)}</td>
                     </tr>
                 `;
             });
@@ -494,15 +998,22 @@
             markers = [];
 
             locationData.forEach((location, index) => {
-                const marker = L.marker([location.lat, location.lng])
-                    .addTo(map)
-                    .bindPopup(`
-                        <b>${location.location}</b><br>
-                        Demand: ${location.demand}<br>
-                        Weight: ${location.weight}<br>
-                        Service Time: ${location.serviceTime} min<br>
-                        Time Window: ${location.startTime} - ${location.endTime}
-                    `);
+                const marker = L.marker([location.lat, location.lng], {
+                    icon: L.divIcon({
+                        html: `<div style="background: #6C5CE7; color: white; border-radius: 50%; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 12px; border: 2px solid white; box-shadow: 0 2px 6px rgba(0,0,0,0.3);">${index + 1}</div>`,
+                        iconSize: [10, 10],
+                        className: 'location-marker'
+                    })
+                }).addTo(map)
+                .bindPopup(`
+                    <b>${location.point}: ${location.location}</b><br>
+                    <div style="margin-top: 8px;">
+                        <div><span class="badge">Time Window:</span> ${location.startTime} - ${location.endTime}</div>
+                        <div><span class="badge">Demand:</span> ${location.demand}</div>
+                        <div><span class="badge">Weight:</span> ${location.weight}</div>
+                        <div><span class="badge">Service Time:</span> ${location.serviceTime} min</div>
+                    </div>
+                `);
                 
                 markers.push(marker);
             });
@@ -516,7 +1027,7 @@
 
         function optimizeRoutes() {
             if (locationData.length === 0) {
-                alert('Please import Excel data first');
+                showNotification('Please import Excel data first', 'error');
                 return;
             }
 
@@ -530,81 +1041,184 @@
             const vehicleCount = parseInt(document.getElementById('vehicleCount').value);
             const maxCapacity = parseInt(document.getElementById('maxCapacity').value);
             const maxWeight = parseInt(document.getElementById('maxWeight').value);
+            const timeHorizon = parseInt(document.getElementById('timeHorizon').value) * 60; 
+            const timeWindowPenalty = parseInt(document.getElementById('timeWindowPenalty').value);
             
             // Update depot coordinates
             depot.lat = parseFloat(document.getElementById('depotLat').value);
             depot.lng = parseFloat(document.getElementById('depotLng').value);
 
-            // Simulate optimization process
+            // Simulate progress updates
+            let progress = 0;
+            const progressInterval = setInterval(() => {
+                progress += 5;
+                if (progress > 100) progress = 100;
+                document.getElementById('progressFill').style.width = `${progress}%`;
+                document.getElementById('progressStatus').textContent = `${progress}%`;
+                
+                if (progress === 25) {
+                    document.querySelector('#loadingIndicator p').textContent = "Analyzing time windows...";
+                } else if (progress === 50) {
+                    document.querySelector('#loadingIndicator p').textContent = "Calculating optimal routes...";
+                } else if (progress === 75) {
+                    document.querySelector('#loadingIndicator p').textContent = "Validating constraints...";
+                } else if (progress === 100) {
+                    document.querySelector('#loadingIndicator p').textContent = "Finalizing results...";
+                }
+            }, 200);
+
+            // Simulate optimization process (in a real app, this would be an API call)
             setTimeout(() => {
-                const routes = performVRPOptimization(vehicleCount, maxCapacity, maxWeight);
+                clearInterval(progressInterval);
+                
+                const routes = performVRPOptimization(vehicleCount, maxCapacity, maxWeight, timeHorizon, timeWindowPenalty);
                 displayResults(routes);
                 drawRoutesOnMap(routes);
                 
                 // Hide loading
                 loadingIndicator.classList.remove('show');
                 optimizeBtn.disabled = false;
-            }, 2000);
+                
+                // Show completion notification
+                showNotification('Route optimization completed successfully!', 'success');
+            }, 5000);
         }
 
-        function performVRPOptimization(vehicleCount, maxCapacity, maxWeight) {
-            // Simple nearest neighbor heuristic for demonstration
+        function performVRPOptimization(vehicleCount, maxCapacity, maxWeight, timeHorizon, timeWindowPenalty) {
+            // This is a simplified VRP with time windows implementation
+            // In a real application, you would use a proper optimization algorithm
+            
+            // Reset visited status
+            locationData.forEach(loc => loc.visited = false);
+            
             const routes = [];
             const unvisited = [...locationData];
+            
+            // Sort locations by earliest start time (time windows)
+            unvisited.sort((a, b) => a.startMinutes - b.startMinutes);
             
             for (let v = 0; v < vehicleCount && unvisited.length > 0; v++) {
                 const route = {
                     vehicle: v + 1,
                     stops: [],
+                    sequence: [],
                     totalDemand: 0,
                     totalWeight: 0,
                     totalDistance: 0,
-                    totalTime: 0
+                    totalTime: 0,
+                    timeWindows: [],
+                    arrivalTimes: [],
+                    departureTimes: [],
+                    violations: 0
                 };
 
+                let currentTime = 0; // Starting from depot at time 0 (08:00)
                 let currentLat = depot.lat;
                 let currentLng = depot.lng;
+                let remainingTime = timeHorizon;
 
-                while (unvisited.length > 0) {
-                    // Find nearest unvisited location that fits capacity constraints
-                    let nearestIndex = -1;
-                    let nearestDistance = Infinity;
+                // Always start at depot
+                route.sequence.push({ type: 'depot', lat: depot.lat, lng: depot.lng });
+                route.arrivalTimes.push(0);
+                route.departureTimes.push(0);
+
+                while (unvisited.length > 0 && remainingTime > 0) {
+                    // Find best next location based on time windows and distance
+                    let bestIndex = -1;
+                    let bestScore = -Infinity;
+                    let bestArrivalTime = 0;
+                    let bestWaitTime = 0;
+                    let bestViolation = 0;
 
                     for (let i = 0; i < unvisited.length; i++) {
                         const location = unvisited[i];
+                        const distance = calculateDistance(currentLat, currentLng, location.lat, location.lng);
+                        const travelTime = distance * 3; // Assuming 20 km/h average speed
+                        const arrivalTime = currentTime + travelTime;
                         
-                        // Check capacity constraints
+                        // Calculate time window violation
+                        let waitTime = 0;
+                        let violation = 0;
+                        
+                        if (arrivalTime < location.startMinutes) {
+                            // Arrived too early, need to wait
+                            waitTime = location.startMinutes - arrivalTime;
+                        } else if (arrivalTime > location.endMinutes) {
+                            // Arrived too late
+                            violation = arrivalTime - location.endMinutes;
+                        }
+                        
+                        const departureTime = arrivalTime + waitTime + location.serviceTime;
+                        
+                        // Check capacity and time constraints
                         if (route.totalDemand + location.demand > maxCapacity ||
-                            route.totalWeight + location.weight > maxWeight) {
+                            route.totalWeight + location.weight > maxWeight ||
+                            departureTime > timeHorizon) {
                             continue;
                         }
-
-                        const distance = calculateDistance(currentLat, currentLng, location.lat, location.lng);
-                        if (distance < nearestDistance) {
-                            nearestDistance = distance;
-                            nearestIndex = i;
+                        
+                        // Calculate score (higher is better)
+                        // This is a simple heuristic - in reality you'd use a proper optimization algorithm
+                        const score = (1 / (distance + 1)) * 100 + 
+                                     (1 / (violation + 1)) * 50 * timeWindowPenalty -
+                                     waitTime * 0.5;
+                        
+                        if (score > bestScore) {
+                            bestScore = score;
+                            bestIndex = i;
+                            bestArrivalTime = arrivalTime;
+                            bestWaitTime = waitTime;
+                            bestViolation = violation;
                         }
                     }
 
-                    if (nearestIndex === -1) break; // No more locations can be added
+                    if (bestIndex === -1) break; // No feasible location found
 
-                    const selectedLocation = unvisited.splice(nearestIndex, 1)[0];
+                    const selectedLocation = unvisited.splice(bestIndex, 1)[0];
                     route.stops.push(selectedLocation);
+                    route.sequence.push({
+                        type: 'location',
+                        ...selectedLocation
+                    });
+                    
+                    // Update times
+                    route.arrivalTimes.push(bestArrivalTime);
+                    route.departureTimes.push(bestArrivalTime + bestWaitTime + selectedLocation.serviceTime);
+                    
+                    // Update metrics
+                    const distance = calculateDistance(currentLat, currentLng, selectedLocation.lat, selectedLocation.lng);
                     route.totalDemand += selectedLocation.demand;
                     route.totalWeight += selectedLocation.weight;
-                    route.totalDistance += nearestDistance;
-                    route.totalTime += selectedLocation.serviceTime;
-
+                    route.totalDistance += distance;
+                    route.totalTime += bestWaitTime + selectedLocation.serviceTime;
+                    route.timeWindows.push(`${minutesToTime(bestArrivalTime)} (${bestWaitTime > 0 ? 'wait ' + bestWaitTime + 'min' : 'on time'})`);
+                    
+                    if (bestViolation > 0) {
+                        route.violations++;
+                    }
+                    
+                    // Update current position and time
                     currentLat = selectedLocation.lat;
                     currentLng = selectedLocation.lng;
+                    currentTime = bestArrivalTime + bestWaitTime + selectedLocation.serviceTime;
+                    remainingTime = timeHorizon - currentTime;
                 }
 
-                // Add return to depot distance
-                route.totalDistance += calculateDistance(currentLat, currentLng, depot.lat, depot.lng);
+                // Return to depot
+                const returnDistance = calculateDistance(currentLat, currentLng, depot.lat, depot.lng);
+                const returnTime = returnDistance * 3;
+                route.totalDistance += returnDistance;
+                route.sequence.push({ type: 'depot', lat: depot.lat, lng: depot.lng });
+                route.arrivalTimes.push(currentTime + returnTime);
                 
                 if (route.stops.length > 0) {
                     routes.push(route);
                 }
+            }
+
+            // Handle any unvisited locations (in a real app, you'd need to handle this)
+            if (unvisited.length > 0) {
+                console.warn(`${unvisited.length} locations could not be visited with current constraints`);
             }
 
             return routes;
@@ -630,28 +1244,54 @@
             let resultsHTML = '';
             
             routes.forEach((route, index) => {
-                const utilizationDemand = (route.totalDemand / parseInt(document.getElementById('maxCapacity').value) * 100).toFixed(1);
-                const utilizationWeight = (route.totalWeight / parseInt(document.getElementById('maxWeight').value) * 100).toFixed(1);
+                const utilizationDemand = (route.totalDemand / parseInt(document.getElementById('maxCapacity').value)) * 100;
+                const utilizationWeight = (route.totalWeight / parseInt(document.getElementById('maxWeight').value)) * 100;
+                const timeUtilization = (route.arrivalTimes[route.arrivalTimes.length - 1] / (parseInt(document.getElementById('timeHorizon').value) * 60)) * 100;
                 
                 resultsHTML += `
                     <div class="route-card" style="border-left-color: ${routeColors[index % routeColors.length]}">
                         <div class="route-header">
-                            <span>🚛 Route ${route.vehicle}</span>
+                            <span>🚛 Vehicle ${route.vehicle}</span>
                             <span class="route-stats">
-                                ${route.stops.length} stops • ${route.totalDistance.toFixed(1)} km
+                                ${route.stops.length} stops • ${route.totalDistance.toFixed(1)} km • 
+                                ${minutesToTime(route.arrivalTimes[route.arrivalTimes.length - 1])}
                             </span>
                         </div>
                         <div class="route-points">
-                            <strong>Stops:</strong> Depot → ${route.stops.map(s => s.location).join(' → ')} → Depot
+                            <strong>Route:</strong> Depot → 
+                            ${route.stops.map((s, i) => 
+                                `${s.point} (${minutesToTime(route.arrivalTimes[i+1])})`
+                            ).join(' → ')} → Depot
                         </div>
-                        <div style="margin-top: 10px; font-size: 12px; color: #718096;">
-                            <span class="status-indicator ${utilizationDemand > 90 ? 'status-warning' : 'status-success'}"></span>
-                            Demand: ${route.totalDemand} (${utilizationDemand}%)
-                            <span class="status-indicator ${utilizationWeight > 90 ? 'status-warning' : 'status-success'}"></span>
-                            Weight: ${route.totalWeight} (${utilizationWeight}%)
-                            <span class="status-indicator status-success"></span>
-                            Time: ${route.totalTime} min
+                        <div class="time-windows">
+                            ${route.stops.map((s, i) => {
+                                const arrival = route.arrivalTimes[i+1];
+                                const status = arrival > s.endMinutes ? 'error' : 
+                                            arrival < s.startMinutes ? 'warning' : 'success';
+                                
+                                return `
+                                    <div class="time-window">
+                                        <span class="status-indicator status-${status}"></span>
+                                        ${s.point}: ${minutesToTime(arrival)}
+                                    </div>
+                                `;
+                            }).join('')}
                         </div>
+                        <div class="progress-container">
+                            <div class="progress-labels">
+                                <span>Demand: ${route.totalDemand} (${utilizationDemand.toFixed(1)}%)</span>
+                                <span>Weight: ${route.totalWeight} (${utilizationWeight.toFixed(1)}%)</span>
+                                <span>Time: ${minutesToTime(route.arrivalTimes[route.arrivalTimes.length - 1])} (${timeUtilization.toFixed(1)}%)</span>
+                            </div>
+                            <div class="progress-bar">
+                                <div class="progress-fill" style="width: ${Math.min(100, utilizationDemand)}%; background: ${
+                                    utilizationDemand > 90 ? 'var(--danger)' : utilizationDemand > 70 ? 'var(--warning)' : 'var(--success)'}"></div>
+                            </div>
+                        </div>
+                        ${route.violations > 0 ? 
+                            `<div style="margin-top: 10px; font-size: 12px; color: var(--danger);">
+                                ⚠️ ${route.violations} time window violation(s)
+                            </div>` : ''}
                     </div>
                 `;
             });
@@ -659,14 +1299,20 @@
             // Add summary
             const totalDistance = routes.reduce((sum, route) => sum + route.totalDistance, 0);
             const totalStops = routes.reduce((sum, route) => sum + route.stops.length, 0);
+            const totalViolations = routes.reduce((sum, route) => sum + route.violations, 0);
+            const avgUtilization = routes.length > 0 ? 
+                routes.reduce((sum, route) => sum + (route.totalDemand / parseInt(document.getElementById('maxCapacity').value) * 100), 0) / routes.length : 0;
             
             resultsHTML += `
-                <div style="background: #f7fafc; padding: 15px; border-radius: 8px; margin-top: 15px;">
-                    <h4 style="color: #2d3748; margin-bottom: 10px;">📊 Summary</h4>
+                <div style="background: rgba(0,0,0,0.02); padding: 15px; border-radius: 8px; margin-top: 15px;">
+                    <h4 style="color: var(--dark); margin-bottom: 10px;">📊 Summary</h4>
                     <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; font-size: 14px;">
                         <div><strong>Total Vehicles:</strong> ${routes.length}</div>
                         <div><strong>Total Distance:</strong> ${totalDistance.toFixed(1)} km</div>
-                        <div><strong>Total Stops:</strong> ${totalStops}</div>
+                        <div><strong>Total Stops:</strong> ${totalStops} (${locationData.length - totalStops} unassigned)</div>
+                        <div><strong>Avg. Utilization:</strong> ${avgUtilization.toFixed(1)}%</div>
+                        <div><strong>Total Violations:</strong> ${totalViolations}</div>
+                        <div><strong>Total Time:</strong> ~${(totalDistance * 3 / 60).toFixed(1)} hours</div>
                     </div>
                 </div>
             `;
@@ -674,49 +1320,61 @@
             routeResults.innerHTML = resultsHTML;
         }
 
-        function drawRoutesOnMap() {
-            // Clear existing routes
+        function drawRoutesOnMap(routes) {
+            // Clear existing routes and vehicles
             routeLines.forEach(line => map.removeLayer(line));
             routeLines = [];
+            
+            // Remove any existing vehicle markers
+            map.eachLayer(layer => {
+                if (layer.options && layer.options.icon && layer.options.icon.options && 
+                    (layer.options.icon.options.className === 'vehicle-marker' || 
+                     layer.options.icon.options.className === 'active-vehicle')) {
+                    map.removeLayer(layer);
+                }
+            });
 
             // Update depot marker position
             map.eachLayer(layer => {
-                if (layer.options && layer.options.icon && layer.options.icon.options && layer.options.icon.options.className === 'depot-marker') {
+                if (layer.options && layer.options.icon && layer.options.icon.options && 
+                    layer.options.icon.options.className === 'depot-marker') {
                     map.removeLayer(layer);
                 }
             });
             addDepotMarker();
 
-            // Get current routes from results
-            const vehicleCount = parseInt(document.getElementById('vehicleCount').value);
-            const maxCapacity = parseInt(document.getElementById('maxCapacity').value);
-            const maxWeight = parseInt(document.getElementById('maxWeight').value);
-            
-            const routes = performVRPOptimization(vehicleCount, maxCapacity, maxWeight);
-
+            // Draw each route
             routes.forEach((route, routeIndex) => {
                 const color = routeColors[routeIndex % routeColors.length];
                 const points = [];
                 
-                // Add depot as starting point
-                points.push([depot.lat, depot.lng]);
-                
-                // Add all stops
-                route.stops.forEach(stop => {
-                    points.push([stop.lat, stop.lng]);
+                // Add all points in sequence
+                route.sequence.forEach(point => {
+                    points.push([point.lat, point.lng]);
                 });
-                
-                // Return to depot
-                points.push([depot.lat, depot.lng]);
                 
                 // Draw route line
                 const routeLine = L.polyline(points, {
                     color: color,
                     weight: 4,
-                    opacity: 0.8,
-                    dashArray: routeIndex === 0 ? null : '10, 5'
+                    opacity: 0.7,
+                    dashArray: routeIndex === 0 ? null : '5, 5'
                 }).addTo(map);
                 
+                routeLine.bindPopup(`
+                    <b>Vehicle ${route.vehicle}</b><br>
+                    <div style="margin-top: 8px;">
+                        ${route.stops.map((stop, i) => `
+                            <div style="margin-bottom: 5px;">
+                                <b>${stop.point}:</b> ${minutesToTime(route.arrivalTimes[i+1])}<br>
+                                <small>Window: ${stop.startTime}-${stop.endTime}</small>
+                            </div>
+                        `).join('')}
+                        <div style="margin-top: 5px;">
+                            <b>Total:</b> ${route.stops.length} stops, ${route.totalDistance.toFixed(1)} km
+                        </div>
+                    </div>
+                `);
                 routeLines.push(routeLine);
                 
                 // Update marker colors for this route
@@ -728,14 +1386,99 @@
                     
                     if (marker) {
                         const icon = L.divIcon({
-                            html: `<div style="background: ${color}; color: white; border-radius: 50%; width: 25px; height: 25px; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 12px; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.3);">${stopIndex + 1}</div>`,
-                            iconSize: [25, 25],
+                            html: `<div style="background: ${color}; color: white; border-radius: 50%; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 12px; border: 2px solid white; box-shadow: 0 2px 6px rgba(0,0,0,0.3);">${stopIndex + 1}</div>`,
+                            iconSize: [10, 10],
                             className: 'route-marker'
                         });
                         marker.setIcon(icon);
                     }
                 });
             });
+
+            // Show time slider if we have routes
+            if (routes.length > 0) {
+                document.getElementById('timeSlider').style.display = 'block';
+                currentTime = 0;
+                updateTimeSimulation();
+            } else {
+                document.getElementById('timeSlider').style.display = 'none';
+            }
+        }
+
+        function toggleAnimation() {
+            if (currentAnimation) {
+                clearInterval(currentAnimation);
+                currentAnimation = null;
+                document.getElementById('animateBtn').textContent = 'Animate';
+                return;
+            }
+            
+            document.getElementById('animateBtn').textContent = 'Stop';
+            const timeSlider = document.getElementById('timeRange');
+            let time = parseInt(timeSlider.value);
+            
+            currentAnimation = setInterval(() => {
+                time += 15;
+                if (time > 480) time = 0;
+                timeSlider.value = time;
+                updateTimeSimulation();
+            }, 200);
+        }
+
+        function updateTimeSimulation() {
+            const timeValue = parseInt(document.getElementById('timeRange').value);
+            currentTime = timeValue;
+            document.getElementById('timeLabel').textContent = minutesToTime(timeValue);
+            
+            // In a real app, you would update vehicle positions based on the current time
+            // This is a simplified visualization
+        }
+
+        function exportRoutes() {
+            // In a real app, implement export functionality
+            showNotification('Export feature coming soon!', 'info');
+        }
+
+        function showNotification(message, type) {
+            // Create notification element
+            const notification = document.createElement('div');
+            notification.className = `notification notification-${type}`;
+            notification.innerHTML = `
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <span class="status-indicator status-${type}"></span>
+                    ${message}
+                </div>
+            `;
+            
+            // Style the notification
+            notification.style.position = 'fixed';
+            notification.style.bottom = '20px';
+            notification.style.right = '20px';
+            notification.style.padding = '15px 20px';
+            notification.style.background = 'white';
+            notification.style.borderRadius = '8px';
+            notification.style.boxShadow = '0 5px 15px rgba(0,0,0,0.1)';
+            notification.style.zIndex = '1000';
+            notification.style.transform = 'translateY(100px)';
+            notification.style.opacity = '0';
+            notification.style.transition = 'all 0.3s ease';
+            
+            document.body.appendChild(notification);
+            
+            // Animate in
+            setTimeout(() => {
+                notification.style.transform = 'translateY(0)';
+                notification.style.opacity = '1';
+            }, 10);
+            
+            // Remove after 3 seconds
+            setTimeout(() => {
+                notification.style.transform = 'translateY(100px)';
+                notification.style.opacity = '0';
+                setTimeout(() => {
+                    document.body.removeChild(notification);
+                }, 300);
+            }, 3000);
         }
 
         // Initialize the application
