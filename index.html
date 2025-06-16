@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LOTUS VRP SOLVER - AI Route Optimization</title>
+    <title>LOTUS'S VRP SOLVER - Route Optimization</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css" />
@@ -240,26 +240,22 @@
         .data-table {
             max-height: 300px; /* กำหนดความสูงสูงสุด */
             overflow-y: auto;  /* ให้เลื่อนขึ้น-ลงได้ */
-            overflow-x: auto;  /* ให้เลื่อนซ้าย-ขวาได้ถ้าจำเป็น */
             border: 1px solid rgba(0,0,0,0.05);
             border-radius: 8px;
             margin-top: 10px;
             background: white;
-            position: relative; /* เพิ่มเพื่อให้หัวตารางติดแน่นภายในพื้นที่นี้ */
         }
 
         .data-table table {
             width: 100%;
             border-collapse: collapse;
-            font-size: 13px;
+            font-size: 12px;
         }
 
         .data-table th {
             background: rgba(0,0,0,0.02);
             font-weight: 600;
-            position: sticky; /* ทำให้หัวตารางติดอยู่ด้านบน */
-            top: 0;          /* ติดที่ตำแหน่งบนสุดของ .data-table */
-            z-index: 1;      /* ให้หัวตารางอยู่เหนือข้อมูลเมื่อเลื่อน */
+            top: 0; 
             color: var(--dark);
             box-shadow: 0 2px 2px -1px rgba(0,0,0,0.1); /* เพิ่มเงาเพื่อแยกหัวตาราง */
         }
@@ -268,7 +264,6 @@
             padding: 10px;
             text-align: left;
             border-bottom: 1px solid rgba(0,0,0,0.05);
-            background: white; /* ป้องกันข้อมูลทับซ้อนกับหัวตาราง */
         }
 
         .data-table tr:hover td {
@@ -544,7 +539,7 @@
     <div class="container">
         <div class="header">
             <h1>LOTUS'S ROUTE PLANNER</h1>
-            <p>Advanced Vehicle Routing with Time Windows • 2025 Edition</p>
+            <p>Vehicle Routing Problem with Time Windows • 2025 Edition</p>
         </div>
 
         <div class="main-content">
@@ -582,7 +577,7 @@
                                     <span class="tooltip-text">Number of vehicles available for routing</span>
                                 </span>
                             </label>
-                            <input type="number" id="vehicleCount" value="5" min="1" max="20">
+                            <input type="number" id="vehicleCount" value="10" min="1" max="20">
                         </div>
                         <div class="form-group">
                             <label for="maxCapacity">
@@ -591,7 +586,7 @@
                                     <span class="tooltip-text">Maximum demand capacity per vehicle</span>
                                 </span>
                             </label>
-                            <input type="number" id="maxCapacity" value="425" min="1">
+                            <input type="number" id="maxCapacity" value="400" min="1">
                         </div>
                         <div class="form-group">
                             <label for="maxWeight">
@@ -601,6 +596,15 @@
                                 </span>
                             </label>
                             <input type="number" id="maxWeight" value="3400" min="1">
+                        </div>
+                        <div class="form-group">
+                            <label for="weightTolerance">
+                                Weight Tolerance (%) 
+                                <span class="tooltip">ℹ️
+                                    <span class="tooltip-text">อนุญาตให้เกินน้ำหนักสูงสุดได้ไม่เกินกี่เปอร์เซ็นต์</span>
+                                </span>
+                            </label>
+                            <input type="number" id="weightTolerance" value="5" min="0" max="30">
                         </div>
                         <div class="form-group">
                             <label for="depotLat">
@@ -627,7 +631,7 @@
                                     <span class="tooltip-text">Total working hours per vehicle</span>
                                 </span>
                             </label>
-                            <input type="number" id="timeHorizon" value="8" min="1" max="24">
+                            <input type="number" id="timeHorizon" value="20" min="1" max="24">
                         </div>
                         <div class="form-group">
                             <label for="timeWindowPenalty">
@@ -979,8 +983,7 @@
                         <td>${index + 1}</td>
                         <td>${item.location}</td>
                         <td>
-                            ${item.startTime} - ${item.endTime}<br>
-                            <small>(${item.serviceTime} min service)</small>
+                            ${item.startTime} - ${item.endTime}
                         </td>
                         <td>${item.demand}</td>
                         <td>${item.weight}</td>
@@ -1090,7 +1093,9 @@
             
             // Reset visited status
             locationData.forEach(loc => loc.visited = false);
-            
+
+            const weightTolerance = parseInt(document.getElementById('weightTolerance').value) || 0;
+            const effectiveMaxWeight = maxWeight * (1 + weightTolerance / 100);
             const routes = [];
             const unvisited = [...locationData];
             
@@ -1152,7 +1157,7 @@
                         
                         // Check capacity and time constraints
                         if (route.totalDemand + location.demand > maxCapacity ||
-                            route.totalWeight + location.weight > maxWeight ||
+                            route.totalWeight + location.weight > effectiveMaxWeight || // ใช้ effectiveMaxWeight แทน maxWeight
                             departureTime > timeHorizon) {
                             continue;
                         }
@@ -1241,13 +1246,25 @@
             
             resultsSection.style.display = 'block';
             
+            // Get all parameters once at the start
+            const maxCapacity = parseInt(document.getElementById('maxCapacity').value);
+            const maxWeight = parseInt(document.getElementById('maxWeight').value);
+            const weightTolerance = parseInt(document.getElementById('weightTolerance').value) || 0;
+            const effectiveMaxWeight = maxWeight * (1 + weightTolerance / 100);
+            const timeHorizon = parseInt(document.getElementById('timeHorizon').value) * 60;
+            
             let resultsHTML = '';
             
+            // Process each route
             routes.forEach((route, index) => {
-                const utilizationDemand = (route.totalDemand / parseInt(document.getElementById('maxCapacity').value)) * 100;
-                const utilizationWeight = (route.totalWeight / parseInt(document.getElementById('maxWeight').value)) * 100;
-                const timeUtilization = (route.arrivalTimes[route.arrivalTimes.length - 1] / (parseInt(document.getElementById('timeHorizon').value) * 60)) * 100;
+                const utilizationDemand = (route.totalDemand / maxCapacity) * 100;
+                const utilizationWeight = (route.totalWeight / maxWeight) * 100;
+                const timeUtilization = (route.arrivalTimes[route.arrivalTimes.length - 1] / timeHorizon) * 100;
+                const usedWeightTolerance = route.totalWeight > maxWeight;
+                const overWeightPercentage = usedWeightTolerance ? 
+                    ((route.totalWeight - maxWeight) / maxWeight * 100).toFixed(1) : 0;
                 
+                // Route card header
                 resultsHTML += `
                     <div class="route-card" style="border-left-color: ${routeColors[index % routeColors.length]}">
                         <div class="route-header">
@@ -1256,66 +1273,98 @@
                                 ${route.stops.length} stops • ${route.totalDistance.toFixed(1)} km • 
                                 ${minutesToTime(route.arrivalTimes[route.arrivalTimes.length - 1])}
                             </span>
-                        </div>
+                        </div>`;
+                
+                // Route points
+                resultsHTML += `
                         <div class="route-points">
                             <strong>Route:</strong> Depot → 
                             ${route.stops.map((s, i) => 
                                 `${s.point} (${minutesToTime(route.arrivalTimes[i+1])})`
                             ).join(' → ')} → Depot
-                        </div>
+                        </div>`;
+                
+                // Time windows
+                resultsHTML += `
                         <div class="time-windows">
                             ${route.stops.map((s, i) => {
                                 const arrival = route.arrivalTimes[i+1];
                                 const status = arrival > s.endMinutes ? 'error' : 
                                             arrival < s.startMinutes ? 'warning' : 'success';
-                                
                                 return `
                                     <div class="time-window">
                                         <span class="status-indicator status-${status}"></span>
                                         ${s.point}: ${minutesToTime(arrival)}
-                                    </div>
-                                `;
+                                    </div>`;
                             }).join('')}
-                        </div>
+                        </div>`;
+                
+                // Progress bars
+                resultsHTML += `
                         <div class="progress-container">
                             <div class="progress-labels">
                                 <span>Demand: ${route.totalDemand} (${utilizationDemand.toFixed(1)}%)</span>
-                                <span>Weight: ${route.totalWeight} (${utilizationWeight.toFixed(1)}%)</span>
+                                <span>Weight: ${route.totalWeight} (${utilizationWeight.toFixed(1)}%) 
+                                    ${usedWeightTolerance ? 
+                                        `<span class="badge badge-warning">
+                                            +${weightTolerance}% Tolerance
+                                        </span>` : ''}
+                                </span>
                                 <span>Time: ${minutesToTime(route.arrivalTimes[route.arrivalTimes.length - 1])} (${timeUtilization.toFixed(1)}%)</span>
                             </div>
                             <div class="progress-bar">
-                                <div class="progress-fill" style="width: ${Math.min(100, utilizationDemand)}%; background: ${
-                                    utilizationDemand > 90 ? 'var(--danger)' : utilizationDemand > 70 ? 'var(--warning)' : 'var(--success)'}"></div>
+                                <div class="progress-fill" style="width: ${Math.min(100, utilizationWeight)}%; 
+                                    background: ${
+                                        route.totalWeight > effectiveMaxWeight ? 'var(--danger)' :
+                                        route.totalWeight > maxWeight ? 'var(--warning)' : 'var(--success)'
+                                    }">
+                                </div>
                             </div>
-                        </div>
-                        ${route.violations > 0 ? 
-                            `<div style="margin-top: 10px; font-size: 12px; color: var(--danger);">
-                                ⚠️ ${route.violations} time window violation(s)
-                            </div>` : ''}
-                    </div>
-                `;
+                        </div>`;
+                
+                // Violation warnings
+                if (route.violations > 0) {
+                    resultsHTML += `
+                        <div style="margin-top: 5px; font-size: 12px; color: var(--info);">
+                            ⚠️ ${route.violations} time window violation(s)
+                        </div>`;
+                }
+                
+                if (usedWeightTolerance) {
+                    resultsHTML += `
+                        <div style="margin-top: 5px; font-size: 12px; color: var(--warning);">
+                            ⚖️ Used weight tolerance: ${route.totalWeight.toFixed(0)}/${maxWeight} kg 
+                            (${overWeightPercentage}% over)
+                        </div>`;
+                }
+                
+                resultsHTML += `</div>`; // Close route-card
             });
 
-            // Add summary
+            // Summary section
             const totalDistance = routes.reduce((sum, route) => sum + route.totalDistance, 0);
             const totalStops = routes.reduce((sum, route) => sum + route.stops.length, 0);
             const totalViolations = routes.reduce((sum, route) => sum + route.violations, 0);
             const avgUtilization = routes.length > 0 ? 
-                routes.reduce((sum, route) => sum + (route.totalDemand / parseInt(document.getElementById('maxCapacity').value) * 100), 0) / routes.length : 0;
+                routes.reduce((sum, route) => sum + (route.totalDemand / maxCapacity * 100), 0) / routes.length : 0;
+            const maxWeightUsed = Math.max(...routes.map(r => r.totalWeight));
+            const overWeightRoutes = routes.filter(r => r.totalWeight > maxWeight).length;
             
             resultsHTML += `
                 <div style="background: rgba(0,0,0,0.02); padding: 15px; border-radius: 8px; margin-top: 15px;">
                     <h4 style="color: var(--dark); margin-bottom: 10px;">📊 Summary</h4>
-                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; font-size: 14px;">
+                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; font-size: 12px;">
                         <div><strong>Total Vehicles:</strong> ${routes.length}</div>
                         <div><strong>Total Distance:</strong> ${totalDistance.toFixed(1)} km</div>
-                        <div><strong>Total Stops:</strong> ${totalStops} (${locationData.length - totalStops} unassigned)</div>
+                        <div><strong>Total Stops:</strong> ${totalStops}</div>
+                        <div><strong>Unassigned Stops:</strong> ${locationData.length - totalStops}</div>
                         <div><strong>Avg. Utilization:</strong> ${avgUtilization.toFixed(1)}%</div>
                         <div><strong>Total Violations:</strong> ${totalViolations}</div>
-                        <div><strong>Total Time:</strong> ~${(totalDistance * 3 / 60).toFixed(1)} hours</div>
+                        <div><strong>Weight Tolerance:</strong> +${weightTolerance}%</div>
+                        <div><strong>Max Weight Used:</strong> ${maxWeightUsed.toFixed(0)} kg</div>
+                        <div><strong>Over Weight Routes:</strong> ${overWeightRoutes}</div>
                     </div>
-                </div>
-            `;
+                </div>`;
             
             routeResults.innerHTML = resultsHTML;
         }
